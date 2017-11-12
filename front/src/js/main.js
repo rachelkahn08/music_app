@@ -206,9 +206,10 @@ class Note {
 
 class Scale {
 	constructor(params) {
-		this.rootNote = params.rootNote;
-		this.scaleName = params.scaleName;
-		this.numberOfOctaves = params.numberOfOctaves;
+		this.params = params;
+		this.rootNote = this.params.rootNote;
+		this.scaleName = this.params.scaleName;
+		this.numberOfOctaves = this.params.numberOfOctaves;
 		this.startingIndex = frequencies.indexOf(this.rootNote);
 		this.scale = [];
 	}
@@ -569,51 +570,343 @@ class PlayerGrid {
 		let noteButton = this.noteButton;
 		if (noteButton.classList.contains('active')) {
 			noteButton.classList.remove('active');
-			this.updateIndexArray(this, 0);
+			//this.updateIndexArray(this, 0);
 		} else {
 			noteButton.classList.add('active');
-			this.updateIndexArray(this, 1);
+			//this.updateIndexArray(this, 1);
 		}
 	}
 }
 
-// class App {
+class App {
+	constructor(params) {
+		this.defaultParams = {
+			rootNote: c2,
+			scaleName: 'pentatonic_minor',
+			numberOfOctaves: 2,
+			bpm: 100,
+			duration: 4,
+			signature: [4, 4],
+			numberOfOctaves: 2,
+		};
+
+		if (!params) {
+			this.params = this.defaultParams;
+		} else {
+			this.params = params;
+		}
+
+		this.params.beats = this.params.signature[0];
+		this.params.measure = this.params.signature[1];
+		this.params.numberOfBeats = this.params.duration*this.params.beats;
+		this.params.time = this.params.bpm * 4;
+
+		this.scale = new Scale(this.params);
+		this.params.scale = this.scale.generate();
+
+		this.player = new PlayerGrid(this.params);
+
+		this.playerArrays = this.player.generatePlayerArray();
+		this.noteArray = this.playerArrays.notesArray;
+
+		this.generateApp = this.generateApp.bind(this);
+		this.setPlayInterval = this.setPlayInterval.bind(this);
+		this.playColumn = this.playColumn.bind(this);
+		this.refreshApp = this.refreshApp;
+		this.removeStyles = this.removeStyles.bind(this);
+
+		this.appContainer = document.getElementById('appPlayer');
+	}
+
+	generateApp() {
+
+		for (this.x = 0; this.x < this.noteArray.length; this.x++) {
+			this.column = this.noteArray[this.x];
+			
+			this.playerColumn = document.createElement('div');
+				this.playerColumn.classList.add('player__column');
+
+			this.appContainer.appendChild(this.playerColumn);
+
+			for (this.y = 0; this.y < this.column.length; this.y++) {
+				this.noteButton = this.column[this.y].noteButton;
+				this.noteButton.addEventListener('click', this.column[this.y].toggle);
+				this.playerColumn.appendChild(this.noteButton);
+			}	
+		}
+
+		this.setPlayInterval();
+	}
+
+	refreshApp() {
+		this.appContainer.innerHTML = '';
+
+		this.generateApp();
+	}
+
+	setPlayInterval() {
+		this.xCount = 0;
+
+		if (this.playerInterval) {
+			clearInterval(this.playerInterval);
+		} else {
+			this.playerInterval = window.setInterval(this.playColumn, this.params.time);
+		}
+	}
+
+	playColumn() {
+
+		this.columns = this.noteArray[this.xCount];
+	
+		for (this.yCount = 0; this.yCount < this.columns.length; this.yCount++) {
+			this.noteButton = this.columns[this.yCount].noteButton;
+			this.frequency = this.columns[this.yCount].frequency;
+
+			if (this.noteButton.classList.contains('active')) {
+				this.note = new Note(this.frequency);
+				this.noteButton.classList.add('playing');
+				this.note.tweakStartTime();
+
+				setTimeout(this.removeStyles, this.params.time);
+			} 
+		}
+
+		this.xCount++;
+
+		if (this.xCount == this.params.numberOfBeats) {
+			this.xCount = 0;
+		}
+	}
+
+	removeStyles() {
+		this.noteButton.classList.remove('playing');
+	}
+
+	init() {
+		this.generateApp();
+	}
+}
+
+class MultiplayerApp extends App {
+	constructor(params) {
+		super(params);
+		this.connectToServer = this.connectToServer.bind(this);
+		this.listenForUpdates = this.listenForUpdates.bind(this);
+		this.updatePlayer = this.updatePlayer.bind(this);
+		this.generateApp = this.super.generateApp;
+	}
+
+	connectToServer() {
+		// delay initial construction of the app until after initial parameters have been set
+		
+		// create live connection to server
+	    this.server = new WebSocket('ws://localhost:1357');
+
+		return (
+		    // wait until server responds before finishing build
+		    this.server.onopen = function() {
+
+		    	// receive and react to server response
+		    	this.server.onmessage = function(message) {
+
+		    		// parse initial message
+		    		let initMessage = JSON.parse(message.data);
+
+		    		// check whether joining existing game or starting new one
+		    		if (initMessage.call == 'null') {
+		    			return;
+		    		} else if (initMessage.call == 'init') {
+		    			// if joining new existing, update player to reflect existing conditions
+		    			for (var i = 0; i < initMessage.array.length; i++) {
+		    				this.updatePlayer(initMessage.array[i]);
+		    			}
+		    		}
+
+		    		// start loop to play notes
+		    		this.super.setPlayInterval();
+		    	}
+		    }).then(this.listenForUpdates);
+	}
+
+	listenForUpdates() {
+		return (
+			// set functions for how to react to all messages after
+			this.server.onmessage = function(message) {
+				this.update = JSON.parse(message.data);
+				
+				// update.call describes the type of change to make
+				if (this.update.call == 'update_toggle_array') {
+					this.button.id = this.update.id;
+					this.updatePlayer();	
+				} if (this.update.call == 'new_partner_set') {
+					console.log();
+				}	
+			}
+		).then(
+			this.server.catch = function(err) {
+				console.log(err);
+			}
+		);
+	}
+
+	updatePlayer() {
+		// target specifically the button that is changing
+		this.button = document.getElementById(this.update.id);
+
+		// compare classList vals to the new vals 
+		if 	(this.button.classList.contains('active') && this.update.val == 0) {
+			// if val is false and button is true, set button to false by removing 'active' from classlist
+			this.button.classList.remove('active');
+		} else if (!this.button.classList.contains('active') && this.update.val == 1) {
+			// if val is true and button is false, set button to true by adding 'active' to classlist
+			this.button.classList.add('active');
+		}
+	}
+}
+
+// class SinglePlayerApp extends App {
 // 	constructor(params) {
-// 		this.defaultParams = {
-// 			rootNote: c2,
-// 			scaleName: 'pentatonic_minor',
-// 			numberOfOctaves: 2,
-// 			bpm: 100,
-// 			duration: 4,
-// 			signature: [4, 4],
-// 			numberOfOctaves: 2,
-// 			time: 500,
-// 		};
+// 		super(params);
+// 		// this.generateApp = this.params.generateApp.bind(this);
+		
+// 		this.options = {};
 
-// 		if (!params) {
-// 			this.params = this.defaultParams;
-// 		} else {
-// 			this.params = params;
-// 		}
+// 		this.singlePlayerControls = document.getElementById('playerOptions');
+// 		this.rebuildApp = this.rebuildApp.bind(this);
+// 		// this.singlePlayerControls.classList.remove('hidden');
+// 		this.menuSubmit = document.getElementById('menuSubmit');
+// 		this.menuSubmit.addEventListener('click', this.rebuildApp);
 
-// 		this.params.beats = params.signature[0];
-// 		this.params.measure = params.signature[1];
-// 		this.params.numberOfBeats = params.duration*params.beats;
 
-// 		this.scale = new Scale(params);
-// 		this.params.scale = this.scale.generate();
-
-// 		this.player = new PlayerGrid(params);
-
-// 		this.playerArrays = this.player.generatePlayerArray();
-// 		this.noteArray = this.playerArrays.notesArray;
-
-// 		this.generatePlayer = generatePlayer;
-// 		this.setPlayInterval = setPlayInterval;
+// 		this.options.scaleSelector = document.getElementById('scaleSelector');
+// 		this.options.rootSelector = document.getElementById('rootSelector');
+// 		this.options.octavesSelector = document.getElementById('octavesNumSelector');
+		
 // 	}
 
-// 	generateApp() {
-// 		var appContainer = document.getElementById('appPlayer');
+// 	//activate single player controls
+// 	rebuildApp(e) {
+// 		e.preventDefault();
+// 		console.log('rebuild');
+// 		console.dir(this.options);
+// 	}
+
+// }
+
+// var localApp = new SinglePlayerApp;
+// 	localApp.generateApp();
+
+// function multiPlayerInit() {
+
+// 	function connectToServer() {
+
+// 		// delay initial construction of the app until after initial parameters have been set
+// 	    return new Promise(function(resolve, reject) {
+
+// 	    	// create live connection to server
+// 	        server = new WebSocket('ws://localhost:1357');
+
+// 	        // wait until server responds before finishing build
+// 	        server.onopen = function() {
+
+// 	        	// receive and react to server response
+// 	        	server.onmessage = function(message) {
+
+// 	        		// parse initial message
+// 	        		let initMessage = JSON.parse(message.data);
+
+// 	        		// check whether joining existing game or starting new one
+// 	        		if (initMessage.call == 'null') {
+// 	        			return;
+// 	        		} else if (initMessage.call == 'init') {
+// 	        			// if joining new existing, update player to reflect existing conditions
+// 	        			for (var i = 0; i < initMessage.array.length; i++) {
+// 	        				updatePlayer(initMessage.array[i]);
+// 	        			}
+// 	        		}
+
+// 	        		// start loop to play notes
+// 	        		playNotes();
+
+// 	        		// finish pre-init
+// 	        		resolve(server);
+// 	        	}
+// 	        }
+
+// 	        server.onerror = function(err) {
+// 	            reject(err);
+// 	        }
+// 	    })
+// 	}
+
+// 	// once pre-init has been completed
+// 	connectToServer().then(function(server) {
+
+// 		// set functions for how to react to all messages after
+// 		server.onmessage = function(message) {
+
+// 			let update = JSON.parse(message.data);
+			
+// 			// update.call describes the type of change to make
+// 			if (update.call == 'update_toggle_array') {
+// 				updatePlayer(update);	
+// 			} if (update.call == 'new_partner_set') {
+// 				console.log(update);
+// 			}	
+// 		}
+// 	}).catch(function(err) {
+// 		console.log(err);
+// 	});
+
+// 	// update handler
+// 	function updatePlayer(message) {
+
+// 		// target specifically the button that is changing
+// 		var button = document.getElementById(message.id);
+
+// 		// compare classList vals to the new vals 
+// 		if 	(button.classList.contains('active') && message.val == 0) {
+// 			// if val is false and button is true, set button to false by removing 'active' from classlist
+// 			button.classList.remove('active');
+// 		} else if (!button.classList.contains('active') && message.val == 1) {
+// 			// if val is true and button is false, set button to true by adding 'active' to classlist
+// 			button.classList.add('active');
+// 		}
+// 	}
+// }
+
+// var App = (function(params) {
+// 	let shared = {};
+
+// 	const defaultParams = {
+// 		rootNote: c2,
+// 		scaleName: 'pentatonic_minor',
+// 		numberOfOctaves: 2,
+// 		bpm: 100,
+// 		duration: 2,
+// 		signature: [4, 4],
+// 		numberOfOctaves: 2,
+// 	};
+
+// 	if (!params) {
+// 		params = defaultParams;
+// 	} 
+
+// 	params.beats = params.signature[0];
+// 	params.measure = params.signature[1];
+// 	params.numberOfBeats = params.duration*params.beats;
+
+// 	const scale = new Scale(params);
+
+// 	params.scale = scale.generate();
+
+// 	let 	player = new Player(params);
+// 			playerArrays = player.generatePlayerArray();
+// 	const 	noteArray = playerArrays.notesArray,
+// 			idArray = playerArrays.idArray;
+
+// 	function generatePlayer() {
+// 		var appPlayer = document.getElementById('appPlayer');
 
 // 		for (var x = 0; x < noteArray.length; x++) {
 // 			var column = noteArray[x];
@@ -634,307 +927,141 @@ class PlayerGrid {
 // 		}
 // 	}
 
-// 	setPlayInterval() {
-// 		this.x = 0;
+function init() {
+	let localApp = new App();
+		localApp.init();
 
-// 		if (this.playerInterval) {
-// 			clearInterval(this.playerInterval);
-// 		} else {
-// 			this.playerInterval = window.setInterval(this.playColumn, this.time);
-// 		}
-// 	}
+		function playNotes() {
 
-// 	playColumn() {
-// 		let columns = this.noteArray[x];
-	
-// 		for (var y = 0; y < columns.length; y++) {
-// 			let noteButton = columns[y].noteButton,
-// 				frequency = columns[y].frequency;
+			let x = 0;
 
-// 			if (noteButton.classList.contains('active')) {
+			var playerInterval = window.setInterval(playColumn, time);
+
+			function playColumn() {
+				let columns = noteArray[x];
+
 				
-// 				noteButton.classList.add('playing');
-// 				var note = new Note(frequency);
-// 				note.tweakStartTime();
+				for (var y = 0; y < columns.length; y++) {
+					let noteButton = columns[y].noteButton,
+						frequency = columns[y].frequency;
 
-// 				setTimeout(function() {
-// 					noteButton.classList.remove('playing');
-// 				}, 500);
-// 			} 
-// 		}
-
-// 		this.x++;
-
-// 		if (this.x == this.params.numberOfBeats) {
-// 			this.x = 0;
-// 		}
-// 	}
-// }
-
-// class MultiplayerApp extends App {
-// 	constructor(params) {
-// 		super(params);
-
-// 	}
+					if (noteButton.classList.contains('active')) {
+						
+						noteButton.classList.add('playing');
+						setTimeout(function(noteButton) {
+							noteButton.classList.remove('playing');
+						}, 500);
 
 
-// }
+						var note = new Note(frequency);
+							note.tweakStartTime();
 
-function multiPlayerInit() {
+						
+					} 
+				}
 
-	function connectToServer() {
+				x++;
 
-		// delay initial construction of the app until after initial parameters have been set
-	    return new Promise(function(resolve, reject) {
-
-	    	// create live connection to server
-	        server = new WebSocket('ws://localhost:1357');
-
-	        // wait until server responds before finishing build
-	        server.onopen = function() {
-
-	        	// receive and react to server response
-	        	server.onmessage = function(message) {
-
-	        		// parse initial message
-	        		let initMessage = JSON.parse(message.data);
-
-	        		// check whether joining existing game or starting new one
-	        		if (initMessage.call == 'null') {
-	        			return;
-	        		} else if (initMessage.call == 'init') {
-	        			// if joining new existing, update player to reflect existing conditions
-	        			for (var i = 0; i < initMessage.array.length; i++) {
-	        				updatePlayer(initMessage.array[i]);
-	        			}
-	        		}
-
-	        		// start loop to play notes
-	        		playNotes();
-
-	        		// finish pre-init
-	        		resolve(server);
-	        	}
-	        }
-
-	        server.onerror = function(err) {
-	            reject(err);
-	        }
-	    })
-	}
-
-	// once pre-init has been completed
-	connectToServer().then(function(server) {
-
-		// set functions for how to react to all messages after
-		server.onmessage = function(message) {
-
-			let update = JSON.parse(message.data);
-			
-			// update.call describes the type of change to make
-			if (update.call == 'update_toggle_array') {
-				updatePlayer(update);	
-			} if (update.call == 'new_partner_set') {
-				console.log(update);
-			}	
+				if (x == params.numberOfBeats) {
+					x = 0;
+				}
+			}
 		}
-	}).catch(function(err) {
-		console.log(err);
-	});
-
-	// update handler
-	function updatePlayer(message) {
-
-		// target specifically the button that is changing
-		var button = document.getElementById(message.id);
-
-		// compare classList vals to the new vals 
-		if 	(button.classList.contains('active') && message.val == 0) {
-			// if val is false and button is true, set button to false by removing 'active' from classlist
-			button.classList.remove('active');
-		} else if (!button.classList.contains('active') && message.val == 1) {
-			// if val is true and button is false, set button to true by adding 'active' to classlist
-			button.classList.add('active');
-		}
-	}
 }
 
-var App = (function(params) {
-	let shared = {};
+init();
 
-	const defaultParams = {
-		rootNote: c2,
-		scaleName: 'pentatonic_minor',
-		numberOfOctaves: 2,
-		bpm: 100,
-		duration: 4,
-		signature: [4, 4],
-		numberOfOctaves: 2,
-	};
 
-	if (!params) {
-		params = defaultParams;
-	} 
+// 	function multiPlayerInit() {
 
-	params.beats = params.signature[0];
-	params.measure = params.signature[1];
-	params.numberOfBeats = params.duration*params.beats;
+// 		function connectToServer() {
 
-	const scale = new Scale(params);
+// 			// delay initial construction of the app until after initial parameters have been set
+// 		    return new Promise(function(resolve, reject) {
 
-	params.scale = scale.generate();
+// 		    	// create live connection to server
+// 		        server = new WebSocket('ws://localhost:1357');
 
-	let 	player = new PlayerGrid(params);
-			playerArrays = player.generatePlayerArray();
-	const 	noteArray = playerArrays.notesArray,
-			idArray = playerArrays.idArray;
+// 		        // wait until server responds before finishing build
+// 		        server.onopen = function() {
 
-	function generatePlayer() {
-		var appPlayer = document.getElementById('appPlayer');
+// 		        	// receive and react to server response
+// 		        	server.onmessage = function(message) {
 
-		for (var x = 0; x < noteArray.length; x++) {
-			var column = noteArray[x];
-			
-			var playerColumn = document.createElement('div');
-				playerColumn.classList.add('player__column');
+// 		        		// parse initial message
+// 		        		let initMessage = JSON.parse(message.data);
 
-			appPlayer.appendChild(playerColumn);
+// 		        		// check whether joining existing game or starting new one
+// 		        		if (initMessage.call == 'null') {
+// 		        			return;
+// 		        		} else if (initMessage.call == 'init') {
+// 		        			// if joining new existing, update player to reflect existing conditions
+// 		        			for (var i = 0; i < initMessage.array.length; i++) {
+// 		        				updatePlayer(initMessage.array[i]);
+// 		        			}
+// 		        		}
 
-			for (var y = 0; y < column.length; y++) {
-				let noteButton = column[y].noteButton;
-					noteButton.addEventListener('click', column[y].toggle);
+// 		        		// start loop to play notes
+// 		        		playNotes();
 
-				playerColumn.appendChild(noteButton);
-			}
+// 		        		// finish pre-init
+// 		        		resolve(server);
+// 		        	}
+// 		        }
 
-			
-		}
-	}
+// 		        server.onerror = function(err) {
+// 		            reject(err);
+// 		        }
+// 		    })
+// 		}
 
-	function playNotes() {
+// 		// once pre-init has been completed
+// 		connectToServer().then(function(server) {
 
-		let x = 0;
+// 			// set functions for how to react to all messages after
+// 			server.onmessage = function(message) {
 
-		var playerInterval = window.setInterval(playColumn, time);
-
-		function playColumn() {
-			let columns = noteArray[x];
-
-			
-			for (var y = 0; y < columns.length; y++) {
-				let noteButton = columns[y].noteButton,
-					frequency = columns[y].frequency;
-
-				if (noteButton.classList.contains('active')) {
-					
-					noteButton.classList.add('playing');
-					var note = new Note(frequency);
-					note.tweakStartTime();
-
-					setTimeout(function() {
-						noteButton.classList.remove('playing');
-					}, 500);
-				} 
-			}
-
-			x++;
-
-			if (x == params.numberOfBeats) {
-				x = 0;
-			}
-		}
-	}
-
-	function multiPlayerInit() {
-
-		function connectToServer() {
-
-			// delay initial construction of the app until after initial parameters have been set
-		    return new Promise(function(resolve, reject) {
-
-		    	// create live connection to server
-		        server = new WebSocket('ws://localhost:1357');
-
-		        // wait until server responds before finishing build
-		        server.onopen = function() {
-
-		        	// receive and react to server response
-		        	server.onmessage = function(message) {
-
-		        		// parse initial message
-		        		let initMessage = JSON.parse(message.data);
-
-		        		// check whether joining existing game or starting new one
-		        		if (initMessage.call == 'null') {
-		        			return;
-		        		} else if (initMessage.call == 'init') {
-		        			// if joining new existing, update player to reflect existing conditions
-		        			for (var i = 0; i < initMessage.array.length; i++) {
-		        				updatePlayer(initMessage.array[i]);
-		        			}
-		        		}
-
-		        		// start loop to play notes
-		        		playNotes();
-
-		        		// finish pre-init
-		        		resolve(server);
-		        	}
-		        }
-
-		        server.onerror = function(err) {
-		            reject(err);
-		        }
-		    })
-		}
-
-		// once pre-init has been completed
-		connectToServer().then(function(server) {
-
-			// set functions for how to react to all messages after
-			server.onmessage = function(message) {
-
-				let update = JSON.parse(message.data);
+// 				let update = JSON.parse(message.data);
 				
-				// update.call describes the type of change to make
-				if (update.call == 'update_toggle_array') {
-					updatePlayer(update);	
-				} if (update.call == 'new_partner_set') {
-					console.log(update);
-				}	
-			}
-		}).catch(function(err) {
-			console.log(err);
-		});
+// 				// update.call describes the type of change to make
+// 				if (update.call == 'update_toggle_array') {
+// 					updatePlayer(update);	
+// 				} if (update.call == 'new_partner_set') {
+// 					console.log(update);
+// 				}	
+// 			}
+// 		}).catch(function(err) {
+// 			console.log(err);
+// 		});
 
-		// update handler
-		function updatePlayer(message) {
+// 		// update handler
+// 		function updatePlayer(message) {
 
-			// target specifically the button that is changing
-			var button = document.getElementById(message.id);
+// 			// target specifically the button that is changing
+// 			var button = document.getElementById(message.id);
 
-			// compare classList vals to the new vals 
-			if 	(button.classList.contains('active') && message.val == 0) {
-				// if val is false and button is true, set button to false by removing 'active' from classlist
-				button.classList.remove('active');
-			} else if (!button.classList.contains('active') && message.val == 1) {
-				// if val is true and button is false, set button to true by adding 'active' to classlist
-				button.classList.add('active');
-			}
-		}
-	}
+// 			// compare classList vals to the new vals 
+// 			if 	(button.classList.contains('active') && message.val == 0) {
+// 				// if val is false and button is true, set button to false by removing 'active' from classlist
+// 				button.classList.remove('active');
+// 			} else if (!button.classList.contains('active') && message.val == 1) {
+// 				// if val is true and button is false, set button to true by adding 'active' to classlist
+// 				button.classList.add('active');
+// 			}
+// 		}
+// 	}
 	
 
-	function init() {
-		// build an empty player
-		generatePlayer();
+// 	function init() {
+// 		// build an empty player
+// 		generatePlayer();
 
-		// populate it
-		multiPlayerInit();
-	}
+// 		// populate it
+// 		multiPlayerInit();
+// 	}
 
-	shared.init = init;
-	return shared;
-}());
+// 	shared.init = init;
+// 	return shared;
+// }());
 
-App.init();
+// App.init();
