@@ -1,0 +1,67 @@
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="x-ua-compatible" content="ie=edge">
+		<title></title>
+		<meta name="description" content="">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+
+		<link rel="stylesheet" href="assets/css/main.css">
+
+	</head>
+
+	</head>
+	<body>
+		<form action="" id="playerOptions">
+			<div class="player-selector">
+				Scale Type:
+				<select type="select" name="scaleSelector" id="scaleSelector">
+					<option value="major">Major</option>
+					<option value="minor">Minor</option>
+					<option value="minor_harmonic">Harmonic Minor</option>
+					<option value="pentatonic_major">Major Pentatonic</option>
+					<option value="pentatonic_minor">Minor Pentatonic</option>
+					<option value="fifths">Circle of Fifths</option>
+					<option value="chord_major">Major Chord</option>
+					<option value="chord_minor">Minor Chord</option>
+					<option value="chord_sus">Suspended Chord</option>
+				</select>
+			</div>
+			<div class="player-selector">
+				Key:
+				<select name="rootSelector" id="rootSelector">
+					<option value="c">C</option>
+					<option value="cs">C#</option>
+					<option value="d">D</option>
+					<option value="ds">D#</option>
+					<option value="e">E</option>
+					<option value="f">F</option>
+					<option value="fs">F#</option>
+					<option value="g">G</option>
+					<option value="gs">G#</option>
+					<option value="a">A</option>
+					<option value="as">A#</option>
+					<option value="b">B</option>
+				</select>
+			</div>
+			<div class="player-selector">
+				Number of Octaves:
+				<input type="number" min="1" max="3" id="octavesNumSelector" placeholder="2">
+				<button id="menuSubmit">Update</button>
+			</div>
+			
+			
+		</form>
+		<main id="app">
+			<form action="" id="appControls">
+				<button id="upOctave">One Octave Up</button>
+				<button id="downOctave">One Octave Down</button>
+			</form>
+			<div id="appPlayer"></div>
+		</main>
+
+
+		<script src="http://reverbjs.org/reverb.js"></script>
+		<script src="./assets/js/main.js"></script>
+	</body>
+</html>
