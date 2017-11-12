@@ -1,96 +1,8 @@
-class Search {
-    constructor(params, array) {
-        this.search = params;
-        this.array = array;
-        this.match = false;
-        this.byName = this.byName.bind(this);
-        this.by2DIndex = this.by2DIndex.bind(this);
-    }
-
-    byName() {
-        for (var i = 0; i < this.array.length; i++) {
-            if (this.array[i].username == this.search.name) {
-                this.match = this.array[i];
-            } 
-        }
-
-        return this.match;
-    }
-
-    by2DIndex() {
-        for (var i = 0; i < this.search.array.length; i++) {
-            if (this.array[i].x == this.search.x && this.array[i].y == this.search.y)   {
-                this.match = this.search.array[i];
-            }
-        }
-        
-        return this.match;
-    }
-}
-
-class Player {
-    constructor(params) {
-        this.params = params;
-        this.noteObject = params.noteObject;
-        this.playerData = {};
-        this.playerData.noteArray = params.noteArray;
-        this.playerData.paired = false;
-        this.playerData.playing = true;
-        this.setUsername = this.setUsername.bind(this);
-        this.setPartner = this.setPartner.bind(this);
-        this.savePlayer = this.savePlayer.bind(this);
-    }
-
-    setUsername() {
-        if (!this.params.username) {
-            this.playerData.username = (Math.floor(Math.random() * (999999 - 100000)) + 100000);
-        } else {
-            this.playerData.username = this.params.username;
-        }
-        
-        return this.playerData.username;
-    }
-
-    pickRandomPartner() {
-        let i = (Math.floor(Math.random() * (allPlayers.length - 1)) + 1); 
-        return allPlayers[i];
-    }
-
-    setPartner() {
-        
-        function testForPlaying() {
-            let testPartner = pickRandomPlayer();
-            
-            if (!testPartner.paired && testPartner.username != this.playerData.username) {
-                return false;
-            } else {
-                return testPartner;
-            }
-        }
-
-        let partner = false;
-
-        while (!partner) {
-            partner = testForPlaying();
-        }
-
-        return partner;
-    }
-
-    savePlayer() {
-        allPlayers.push(this.playerData);
-    }
-}
-
 const WebSocket = require('websocket'),
       WebSocketServer = WebSocket.server;
 const util = require('util');
 const http = require('http'),
       port = 1357;
-
-let noteArray = [],
-    allPlayers = [],
-    currentPlayer = false;
 
 // create a server with websocket
 const httpServer = http.createServer(function(req, res) {
@@ -98,88 +10,144 @@ const httpServer = http.createServer(function(req, res) {
 });
 
 httpServer.listen(port, function() {
-    // console.log(`listening to port:${port}`);
 });
 
 const wsServer = new WebSocketServer({
     httpServer: httpServer,
 }); 
 
+
+let toggleArray = [],
+    allUsers = {};
+    allUsers.all = [];
+    allUsers.havePartners = [];
+    allUsers.needPartners = [];
+
 // create a connection with client
-var connection;
+var connection,
+    userIndex;
 
 wsServer.on('request', function(req){
+
         // establishes connection
         connection = req.accept(null, req.origin);
 
-        // set up user object
+        // set up user object before doing anything else
         connection.onopen = new Promise(function(resolve, reject) {
 
-            // check if user object already exists before continuing
-            if (!currentPlayer.playerData) {
-                
-                // is this a new or returning user?
-                connection.on('message', function(message){
-
-                    // if no user object in message, this is a brand new user
-                    if (message.utf8Data == 'null') { 
-                        // generate a new user object
-                            currentPlayer = new Player();
-                    } else {
-
-                        // check for user history 
-                        let searchSavedUsers = new Search({'name': message.utf8Data}, allPlayers);
-                        let matched = searchSavedUsers.byName();
-
-                        // if username does not have a saved array
-                        if (!matched) {  
-                            // create user object from message
-                              currentPlayer = new Player({'username': message.utf8Data});
-                        }                         
-                    }
-
-                    currentPlayer.setUsername();
-                    resolve(connection);
-                }); 
-            } else { 
-                // if there's already a user object for this session, then go straight to listening for changes
-                resolve(connection);
+            // if this is a new connection, it gets a unique ID
+            if (!connection.config.uniqueID) {
+                let uniqueID = (Math.floor(Math.random() * (999999 - 100000) + 100000));     
+                connection.config.uniqueID = uniqueID;
             }
+
+            // configure function to get a new partner on call
+            connection.config.getPartner = function() {
+                // exclusively look at users wno need a partner
+                let potentials = allUsers.needPartners;
+                // select one from that pool
+                let partner = potentials[(Math.floor(Math.random() * (potentials.length - 1) + potentials.length))];
+                connection.config.partner = partner;
+                // prevent other users from trying to connect to partner user
+                allUsers.havePartners.push(partner);
+
+                partner.call = 'new_partner_set';
+
+                connection.sendUTF(JSON.stringify(partner));
+            }
+
+            // if this is the second or larger connection...
+            if (allUsers.needPartners.length > 1) {
+                //get a partner, yo
+                connection.config.getPartner();
+                // add connection to list of users who have partners
+                allUsers.havePartners.push(connection);
+            } else if (allUsers.needPartners.length < 1) {
+                // add connection to partner-seeking list
+                allUsers.needPartners.push(connection);
+            }
+
+            // now that configurations are made, add this connection to the list of connections
+            allUsers.all.push(connection);
+
+            // keep this index for later to remove the connection on close
+            userIndex = allUsers.all.length - 1;
+
+            // if there is already a list of buttons turned on 
+            if (toggleArray.length > 0) {
+                // create init object to immediately update player
+                let initObj = {}
+                    initObj.call = 'init';
+                    initObj.array = toggleArray;
+                    
+                //send that object to the new connection
+                connection.sendUTF(JSON.stringify(initObj)); 
+            } else {
+                // send 'null' so the browser won't freak out at it being undefined
+                connection.sendUTF(JSON.stringify({'call':'null'}));
+            }
+
+            //configuration complete
+            resolve(connection);
         }).then(function(connection) {
-            // set up to listen for changes
-            connection.on('message', function(message){
-                parsedMessage = JSON.parse(message.utf8Data);
-                // for (var i = 0; i < parsedMessage.length; i++) {
-                //     messageHistory.push(parsedMessage[i]);
-                // }
-                manageNoteArray(parsedMessage);
+            // set up the connection to listen for changes
+            connection.on('message', function(message) {
+                let newState = JSON.parse(message.utf8Data);
+
+                // see what the purpose of the message is, act accordingly
+                if (newState.call == 'get_partner') {
+                    connection.config.getPartner();
+
+                } else if (newState.call == 'update_toggle_array') {
+
+                   // check if there is already an array of changes
+                   if (!toggleArray.length) {
+
+                       // if there isn't, create one
+                       toggleArray.push(newState);
+                   } else {
+
+
+                       // if there is, check whether this change is creating a new object or updating an existing one
+                       let match = false;
+
+                       // if this object exists in ther array, update it
+                       for (var i = 0; i < toggleArray.length; i++) {
+                          if (toggleArray[i].id == newState.id) {
+                              toggleArray[i].val = newState.val;
+                              match = true;
+                          }
+                       }
+
+                       // if it doesn't, create it
+                       if (!match) {
+                           toggleArray.push(newState);
+                       }        
+                   }
+
+                   // ping this change back to the original connection 
+                   connection.sendUTF(JSON.stringify(newState));
+
+                   // loop through all the users
+                   for (var i = 0; i < allUsers.havePartners.length; i++) {
+                       // find this connection's partner
+                       if (allUsers[i].config.uniqueID == connection.config.partnerID) {
+                           // send the update only to this connection's partner
+                           allUsers[i].sendUTF(JSON.stringify(newState));
+                       }
+                   } 
+               }
+                
             });
 
             // closes connection
             connection.on('close', function(code, description){
-                console.log('connection closed');
+                // removes the active connection from the user array
+                allUsers.all.splice([userIndex], 1);
+                // tells partner time to get a new partner, if there is one
+                if ( connection.config.partner ) {
+                    connection.config.partner.sendUTF(JSON.stringify({'call':'get_partner'}));     
+                } 
             });  
-        });          
+    });          
 });
-
-
-// add to an array based on client
-function manageNoteArray(obj) {
-   
-    var matched = new Search(obj, noteArray);
-
-    if (!matched) {
-        console.log('no matches');
-        noteArray.push(obj);
-    } else {
-        console.log('match!');
-        
-        manageChanges(matched);
-    }
-}
-
-// send array changes to client 
-function manageChanges(obj) {
-    // send to player2
-}
-
