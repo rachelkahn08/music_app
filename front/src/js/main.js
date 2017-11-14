@@ -532,7 +532,6 @@ class PlayerGrid {
 	}
 
 	updateIndexArray(info) {
-		console.log(info);
 
 		let obj = {};
 			obj.call = 'update_toggle_array';
@@ -567,9 +566,8 @@ class App {
 			scaleName: 'pentatonic_minor',
 			numberOfOctaves: 2,
 			bpm: 100,
-			duration: 4,
+			duration: 5,
 			signature: [4, 4],
-			numberOfOctaves: 2,
 		};
 
 		if (!params) {
@@ -597,6 +595,7 @@ class App {
 		this.refreshApp = this.refreshApp;
 
 		this.appContainer = document.getElementById('appPlayer');
+		this.allOff = this.allOff.bind(this);
 	}
 
 	refreshApp() {
@@ -641,6 +640,22 @@ class App {
 
 		if (this.xCount == this.params.numberOfBeats + 1) {
 			this.xCount = 0;
+		}
+	}
+
+	allOff(e) {
+		e.preventDefault();
+
+		let columns = this.noteArray;
+
+		for (var x = 0; x < columns.length; x++) {
+			let buttons = columns[x];
+			for (var y = 0; y < buttons.length; y++) {
+				if (buttons[y].noteButton.classList.contains('active')) {
+					buttons[y].toggle();
+					buttons[y].updateIndexArray(buttons[y].noteButton);
+				}
+			}
 		}
 	}
 
@@ -691,7 +706,6 @@ class App {
 								button.toggle();	
 
 								if (condition == 'multi') {
-									console.log('multi');
 									button.updateIndexArray(button.noteButton);
 								}
 							}	
@@ -708,11 +722,12 @@ class App {
 }
 
 const multiPlayer = (function() {
+	var app;
 
 	function init() {
-
 		// open server
 		connectToServer().then(function(server) {
+			document.getElementById('clearAll').addEventListener('click', app.allOff);
 
 			// what to do when the server sends updates
 			server.onmessage = function(message) {
@@ -723,7 +738,7 @@ const multiPlayer = (function() {
 				if (update.call == 'update_toggle_array') {
 					updatePlayer(update);	
 				} if (update.call == 'new_partner_set') {
-					console.log(update);
+					app.allOff();
 				}	
 			}
 		}).catch(function(err) {
@@ -735,7 +750,7 @@ const multiPlayer = (function() {
 	function connectToServer() {
 
 		// generate a new app instance with multiplayer settings, but don't mount it until server can respond
-    	var app = new App;
+    	app = new App;
 
 		// promise allows server to send info on other player's board before the user 
 	    return new Promise(function(resolve, reject) {
