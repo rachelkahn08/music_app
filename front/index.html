@@ -12,7 +12,7 @@
 
 	</head>
 	<body>
-		<form action="" id="playerOptions">
+		<form action="" id="playerOptions" class="hidden">
 			<div class="player-selector">
 				Scale Type:
 				<select type="select" name="scaleSelector" id="scaleSelector">
@@ -44,18 +44,17 @@
 					<option value="b">B</option>
 				</select>
 			</div>
-			<div class="player-selector">
+			<div class="player-selector hidden">
 				Number of Octaves:
 				<input type="number" min="1" max="3" id="octavesNumSelector" placeholder="2">
 			</div>
 			<button id="menuSubmit">Update</button>
 		</form>
-		<main id="app">
-			<form action="" id="appControls">
-				<button id="upOctave">One Octave Up</button>
-				<button id="downOctave">One Octave Down</button>
-			</form>
-			<div id="appPlayer"></div>
+		<form action="" id="appControls" class="hidden">
+			<button id="upOctave">One Octave Up</button>
+			<button id="downOctave">One Octave Down</button>
+		</form>
+		<main id="appPlayer">
 		</main>
 
 

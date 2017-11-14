@@ -79,7 +79,6 @@ wsServer.on('request', function(req){
                 let initObj = {}
                     initObj.call = 'init';
                     initObj.array = toggleArray;
-                    
                 //send that object to the new connection
                 connection.sendUTF(JSON.stringify(initObj)); 
             } else {
