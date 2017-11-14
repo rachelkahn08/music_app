@@ -10,27 +10,6 @@ var server;
 var user = {};
 
 
-// function sendData(e) {
-//     e.preventDefault();
-//     let data = [];
-
-//     let inputVals = document.querySelectorAll('.all-inputs');
-
-
-//     for (var i = 0; i < inputVals.length; i++) {
-//         let input = {};
-//             input.value = inputVals[i].value;
-//             input.name = 'input' + i;
-
-//         data.push(input);
-//     }
-
-//     data = JSON.stringify(data);
-//     client.send(data);
-
-// }
-
-
 const frequencies = [	
 	130.81,
 	138.59,
@@ -493,7 +472,7 @@ class PlayerGrid {
 		this.numberOfBeats = params.numberOfBeats;
 		this.scale = params.scale;
 		this.notesArray = [];
-		this.updateIndexArray = this.updateIndexArray.bind(this);
+		// this.updateIndexArray = this.updateIndexArray.bind(this);
 	}
 
 	generatePlayerArray() {
@@ -531,7 +510,7 @@ class PlayerGrid {
 				arrayObject.id = columnString+'_'+indexString;
 				arrayObject.frequency = this.scale[index];
 				arrayObject.toggle = this.toggle.bind(arrayObject);
-				arrayObject.updateIndexArray = this.updateIndexArray;
+				arrayObject.multiplayerToggle = this.multiplayerToggle.bind(arrayObject);
 				arrayObject.x = column;
 				arrayObject.y = index;
 
@@ -553,27 +532,37 @@ class PlayerGrid {
 		return {notesArray: this.notesArray};
 	}
 
-	updateIndexArray(info, val) {
+	multiplayerToggle(info) {
+		
+		this.toggle();
+
 		let obj = {};
 			obj.call = 'update_toggle_array';
-			obj.id = info.id;
-			obj.val = val;
+			obj.id = this.id;
+
+		if (this.noteButton.classList.contains('active')) {
+			obj.val = 1;
+		} else {
+			obj.val = 0;
+		}
 
 		const objToSend = JSON.stringify(obj);
 
-		server.send(objToSend);
+		this.server.send(objToSend);
+		console.log(obj);
+
 	}
 
-	toggle(e) {
-		e.preventDefault();
+	toggle() {
+		// e.preventDefault();
 
 		let noteButton = this.noteButton;
 		if (noteButton.classList.contains('active')) {
 			noteButton.classList.remove('active');
-			//this.updateIndexArray(this, 0);
+			// this.updateIndexArray(this, 0);
 		} else {
 			noteButton.classList.add('active');
-			//this.updateIndexArray(this, 1);
+			// this.updateIndexArray(this, 1);
 		}
 	}
 }
@@ -613,12 +602,11 @@ class App {
 		this.setPlayInterval = this.setPlayInterval.bind(this);
 		this.playColumn = this.playColumn.bind(this);
 		this.refreshApp = this.refreshApp;
-		this.removeStyles = this.removeStyles.bind(this);
 
 		this.appContainer = document.getElementById('appPlayer');
 	}
 
-	generateApp() {
+	generateApp(condition) {
 
 		for (this.x = 0; this.x < this.noteArray.length; this.x++) {
 			this.column = this.noteArray[this.x];
@@ -630,7 +618,11 @@ class App {
 
 			for (this.y = 0; this.y < this.column.length; this.y++) {
 				this.noteButton = this.column[this.y].noteButton;
-				this.noteButton.addEventListener('click', this.column[this.y].toggle);
+					if (condition == 'multi') {
+						this.noteButton.addEventListener('click', this.column[this.y].multiplayerToggle);
+					} else {
+						this.noteButton.addEventListener('click', this.column[this.y].toggle);
+					}
 				this.playerColumn.appendChild(this.noteButton);
 			}	
 		}
@@ -667,19 +659,19 @@ class App {
 				this.noteButton.classList.add('playing');
 				this.note.tweakStartTime();
 
-				setTimeout(this.removeStyles, this.params.time);
+				let noteButton = this.noteButton;
+
+				setTimeout(() => {
+					noteButton.classList.remove('playing');
+				}, this.params.time);
 			} 
 		}
 
 		this.xCount++;
 
-		if (this.xCount == this.params.numberOfBeats) {
+		if (this.xCount == this.params.numberOfBeats + 1) {
 			this.xCount = 0;
 		}
-	}
-
-	removeStyles() {
-		this.noteButton.classList.remove('playing');
 	}
 
 	init() {
@@ -693,7 +685,7 @@ class MultiplayerApp extends App {
 		this.connectToServer = this.connectToServer.bind(this);
 		this.listenForUpdates = this.listenForUpdates.bind(this);
 		this.updatePlayer = this.updatePlayer.bind(this);
-		this.generateApp = this.super.generateApp;
+		// console.log(this.noteArray);
 	}
 
 	connectToServer() {
@@ -764,37 +756,41 @@ class MultiplayerApp extends App {
 	}
 }
 
-// class SinglePlayerApp extends App {
-// 	constructor(params) {
-// 		super(params);
-// 		// this.generateApp = this.params.generateApp.bind(this);
+class SinglePlayerApp extends App {
+	constructor(params) {
+		super(params);
+		// this.generateApp = this.params.generateApp.bind(this);
 		
-// 		this.options = {};
+		this.options = {};
 
-// 		this.singlePlayerControls = document.getElementById('playerOptions');
-// 		this.rebuildApp = this.rebuildApp.bind(this);
-// 		// this.singlePlayerControls.classList.remove('hidden');
-// 		this.menuSubmit = document.getElementById('menuSubmit');
-// 		this.menuSubmit.addEventListener('click', this.rebuildApp);
+		this.singlePlayerControls = document.getElementById('playerOptions');
+		this.rebuildApp = this.rebuildApp.bind(this);
+		// this.singlePlayerControls.classList.remove('hidden');
+		this.menuSubmit = document.getElementById('menuSubmit');
+		this.menuSubmit.addEventListener('click', this.rebuildApp);
 
 
-// 		this.options.scaleSelector = document.getElementById('scaleSelector');
-// 		this.options.rootSelector = document.getElementById('rootSelector');
-// 		this.options.octavesSelector = document.getElementById('octavesNumSelector');
+		this.options.scaleSelector = document.getElementById('scaleSelector');
+		this.options.rootSelector = document.getElementById('rootSelector');
+		this.options.octavesSelector = document.getElementById('octavesNumSelector');
 		
-// 	}
+	}
 
-// 	//activate single player controls
-// 	rebuildApp(e) {
-// 		e.preventDefault();
-// 		console.log('rebuild');
-// 		console.dir(this.options);
-// 	}
+	//activate single player controls
+	rebuildApp(e) {
+		e.preventDefault();
+		console.log('rebuild');
+		console.dir(this.options);
+	}
 
-// }
+}
 
 // var localApp = new SinglePlayerApp;
 // 	localApp.generateApp();
+
+var multiApp = new MultiplayerApp;
+	multiApp.generateApp('multi');
+
 
 // function multiPlayerInit() {
 
@@ -927,50 +923,39 @@ class MultiplayerApp extends App {
 // 		}
 // 	}
 
-function init() {
-	let localApp = new App();
-		localApp.init();
+// 	function playNotes() {
 
-		function playNotes() {
+// 		let x = 0;
 
-			let x = 0;
+// 		var playerInterval = window.setInterval(playColumn, time);
 
-			var playerInterval = window.setInterval(playColumn, time);
+// 		function playColumn() {
+// 			let columns = noteArray[x];
 
-			function playColumn() {
-				let columns = noteArray[x];
+			
+// 			for (var y = 0; y < columns.length; y++) {
+// 				let noteButton = columns[y].noteButton,
+// 					frequency = columns[y].frequency;
 
-				
-				for (var y = 0; y < columns.length; y++) {
-					let noteButton = columns[y].noteButton,
-						frequency = columns[y].frequency;
+// 				if (noteButton.classList.contains('active')) {
+					
+// 					noteButton.classList.add('playing');
+// 					var note = new Note(frequency);
+// 					note.tweakStartTime();
 
-					if (noteButton.classList.contains('active')) {
-						
-						noteButton.classList.add('playing');
-						setTimeout(function(noteButton) {
-							noteButton.classList.remove('playing');
-						}, 500);
+// 					setTimeout(function() {
+// 						noteButton.classList.remove('playing');
+// 					}, 500);
+// 				} 
+// 			}
 
+// 			x++;
 
-						var note = new Note(frequency);
-							note.tweakStartTime();
-
-						
-					} 
-				}
-
-				x++;
-
-				if (x == params.numberOfBeats) {
-					x = 0;
-				}
-			}
-		}
-}
-
-init();
-
+// 			if (x == params.numberOfBeats) {
+// 				x = 0;
+// 			}
+// 		}
+// 	}
 
 // 	function multiPlayerInit() {
 
