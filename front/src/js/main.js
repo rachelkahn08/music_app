@@ -1,10 +1,10 @@
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-reverbjs.extend(audioCtx);
+// reverbjs.extend(audioCtx);
 
-var reverbUrl = "http://reverbjs.org/Library/ErrolBrickworksKiln.m4a";
-var reverbNode = audioCtx.createReverbFromUrl(reverbUrl, function() {
-  reverbNode.connect(audioCtx.destination);
-});
+// var reverbUrl = "http://reverbjs.org/Library/ErrolBrickworksKiln.m4a";
+// var reverbNode = audioCtx.createReverbFromUrl(reverbUrl, function() {
+//   reverbNode.connect(audioCtx.destination);
+// });
 
 var server;
 var user = {};
@@ -146,6 +146,7 @@ class Note {
 		this.gainNode.connect(audioCtx.destination);
 		this.context = audioCtx;
 		this.delay = this.randomInRange(1, 3);
+		console.log(this.delay);
 		this.play = this.play.bind(this);
 
 	}
@@ -183,288 +184,365 @@ class Note {
 	}
 }
 
+
+
 class Scale {
 	constructor(params) {
 		this.params = params;
 		this.rootNote = this.params.rootNote;
-		this.scaleName = this.params.scaleName;
-		this.numberOfOctaves = this.params.numberOfOctaves;
 		this.startingIndex = frequencies.indexOf(this.rootNote);
+
+		this.scaleType = this.params.scaleType;
+		this.numberOfOctaves = this.params.numberOfOctaves;
+		
+
+		this.key = this.params.key;
+		this.startingOctave = this.params.startingOctave;
+
 		this.scale = [];
+		this.stepPattern = {
+			'major': [2, 2, 1, 2, 2, 2, 1, 2],
+			'minor': [2, 1, 2, 2, 1, 2, 2, 2],
+			'minor_harmonic': [2, 1, 2, 2, 1, 3, 1, 2],
+			'pentatonic_major': [2, 3, 2, 3, 2],
+			'pentatonic_minor': [3, 2, 2, 3, 2, 2],
+			'fifths': [7, 2],
+			'chord_major': [4, 3, 2],
+			'chord_minor': [3, 4, 2],
+			'chord_sus': [5, 2, 2],
+			'chromatic': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,]
+		}
+
+		// every single note name starting with c
+		this.chromaticNotes = ['c', 'c#', 'd','d#', 'e', 'f', 'f#','g', 'g#', 'a', 'a#','b',];
+
+		// at least one note has to be hard-coded for the formula to work
+		this.cFreq = 16.35;
+
+		// select a step pattern based on parameters
+		for (name in this.stepPattern) {
+			if (this.scaleType == name) {
+				this.stepArray = this.stepPattern[name];
+			}
+		}
+
+		// finds number of steps to root note
+		this.rootNote = this.generateSteps(this.startingOctave, this.key);
 	}
 
+	// find steps between two notes
+	generateSteps(octave, startingNote) {
+		let steps = (12 * octave) + this.chromaticNotes.indexOf(startingNote);
+		return steps;
+	}
+
+	// generate a single frequency based on steps from c0
+	generateFreq(numberOfSteps) {
+
+		const a = 1.059463094359;
+		
+		let f = this.cFreq;
+		let n = numberOfSteps;
+
+		let frequency = f * Math.pow(a, n);
+
+		return ( frequency );
+	}
+
+	// generate scale by steps and root
 	generate() {
-		let x = this.startingIndex;
+		this.scale.push(this.generateFreq(this.rootNote));
+		let steps = this.rootNote;
 
-		const w = 2;
-		const h = 1;
-		const o = 13;
+		for (var x = 0; x < this.numberOfOctaves; x++) {
+			console.log(`loop number ${x}`);
 
-		// const stepArray = {
-		// 	'major': [2, 2, 1, 2, 2, 2, 1],
-		// 	'minor': []
-		// }
-
-		if (this.scaleName == 'major') {
-			// R, W, W, H, W, W, W, H
-
-			for (var i = 0; i < this.numberOfOctaves; i++) {
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + h;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + h;
-
-				if (i == this.numberOfOctaves - 1) {
+			for (var i = 0; i < this.stepArray.length; i++) {
+				if (i <= this.stepArray.length - 1) {
+					steps = steps +  this.stepArray[i];
+					let freq = this.generateFreq(steps);
+					this.scale.push(freq);
+				} else if (i = this.stepArray.length + 1) {
 					this.scale.push(frequencies[x]);
 				}
-			}
-		}
-
-		if (this.scaleName == 'minor') { 
-			// R, W, H, W, W, H, W, W
-
-			for (var i = 0; i < this.numberOfOctaves; i++) {
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + h;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + h;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				if (i == this.numberOfOctaves - 1) {
-					this.scale.push(frequencies[x]);
-				}
-			}
-		}
-
-		if (this.scaleName == 'minor_harmonic') { 
-			// R, W, H, W, W, H, 1 1/2, H
-
-			for (var i = 0; i < this.numberOfOctaves; i++) {
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + h;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + h;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w + h;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + h;
-
-				if (i == this.numberOfOctaves - 1) {
-					this.scale.push(frequencies[x]);
-				}
-			}
-		}
-
-		if (this.scaleName == 'pentatonic_major') {
-			// W W 1-1/2 step W 1-1/2 step
-			this.numberOfOctaves = this.numberOfOctaves*1.5;
-
-			for (var i = 0; i < this.numberOfOctaves; i++) {
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w + h;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w + h;
-
-				if (i == this.numberOfOctaves - 1) {
-					this.scale.push(frequencies[x]);
-				}
-			}	
-		}
-
-		if (this.scaleName == 'pentatonic_minor') {
-			// R, 1 1/2, W, W, 1 1/2, W
-			this.numberOfOctaves = this.numberOfOctaves*1.5;
-
-			for (var i = 0; i < this.numberOfOctaves; i++) {
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w + h;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w + h;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + w;
-
-				if (i == this.numberOfOctaves - 1) {
-					this.scale.push(frequencies[x]);
-				}
-			}	
-		}
-
-		if (this.scaleName == 'fifths') {
-			// R, 7
-			this.numberOfOctaves = this.numberOfOctaves * 4.5;
-
-			for (var i = 0; i < this.numberOfOctaves; i++) {
-				this.scale.push(frequencies[x]);
-
-				x = x + 4;
-
-				if (i == this.numberOfOctaves) {
-					this.scale.push(frequencies[x]);
-				}
-
-			}
-		}
-
-		if (this.scaleName == 'chord_major') {
-			// R, 4, 3
-
-			this.numberOfOctaves = this.numberOfOctaves * 3;
-
-			for (var i = 0; i < this.numberOfOctaves; i++) {
-
-				this.scale.push(frequencies[x]);
-
-				x = x + 4;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + 3;
-
-				if (i == this.numberOfOctaves) {
-					this.scale.push(frequencies[x]);
-				}
-			}
-		}
-
-		if (this.scaleName == 'chord_minor') {
-			// R, 3, 4
-
-			this.numberOfOctaves = this.numberOfOctaves * 3;
-
-			for (var i = 0; i < this.numberOfOctaves; i++) {
-				this.scale.push(frequencies[x]);
-
-				x = x + 3;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + 4;
-
-				if (i == this.numberOfOctaves) {
-					this.scale.push(frequencies[x]);
-				}
-
-			}
-		}
-
-		if (this.scaleName == 'chord_sus') {
-			// R, 5, 2
-
-			this.numberOfOctaves = this.numberOfOctaves * 3;
-
-			for (var i = 0; i < this.numberOfOctaves; i++) {
-				this.scale.push(frequencies[x]);
-
-				x = x + 5;
-
-				this.scale.push(frequencies[x]);
-
-				x = x + 2;
-
-				if (i == this.numberOfOctaves) {
-					this.scale.push(frequencies[x]);
-				}
-
 			}
 		}
 
 		return this.scale;
 	}
+
+
+	// create freq array and return it
+
+	// generate() {
+	// 	let x = this.startingIndex;
+
+	// 	const w = 2;
+	// 	const h = 1;
+	// 	const o = 13;
+
+		
+
+	// 	if (this.scaleName == 'major') {
+	// 		// R, W, W, H, W, W, W, H
+
+	// 		for (var i = 0; i < this.numberOfOctaves; i++) {
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + h;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + h;
+
+				
+	// 		}
+	// 	}
+
+	// 	if (this.scaleName == 'minor') { 
+	// 		// R, W, H, W, W, H, W, W
+
+	// 		for (var i = 0; i < this.numberOfOctaves; i++) {
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + h;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + h;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			if (i == this.numberOfOctaves - 1) {
+	// 				this.scale.push(frequencies[x]);
+	// 			}
+	// 		}
+	// 	}
+
+	// 	if (this.scaleName == 'minor_harmonic') { 
+	// 		// R, W, H, W, W, H, 1 1/2, H
+
+	// 		for (var i = 0; i < this.numberOfOctaves; i++) {
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + h;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + h;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w + h;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + h;
+
+	// 			if (i == this.numberOfOctaves - 1) {
+	// 				this.scale.push(frequencies[x]);
+	// 			}
+	// 		}
+	// 	}
+
+	// 	if (this.scaleName == 'pentatonic_major') {
+	// 		// W W 1-1/2 step W 1-1/2 step
+	// 		this.numberOfOctaves = this.numberOfOctaves*1.5;
+
+	// 		for (var i = 0; i < this.numberOfOctaves; i++) {
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w + h;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w + h;
+
+	// 			if (i == this.numberOfOctaves - 1) {
+	// 				this.scale.push(frequencies[x]);
+	// 			}
+	// 		}	
+	// 	}
+
+	// 	if (this.scaleName == 'pentatonic_minor') {
+	// 		// R, 1 1/2, W, W, 1 1/2, W
+	// 		this.numberOfOctaves = this.numberOfOctaves*1.5;
+
+	// 		for (var i = 0; i < this.numberOfOctaves; i++) {
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w + h;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w + h;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + w;
+
+	// 			if (i == this.numberOfOctaves - 1) {
+	// 				this.scale.push(frequencies[x]);
+	// 			}
+	// 		}	
+	// 	}
+
+	// 	if (this.scaleName == 'fifths') {
+	// 		// R, 7
+	// 		this.numberOfOctaves = this.numberOfOctaves * 4.5;
+
+	// 		for (var i = 0; i < this.numberOfOctaves; i++) {
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + 4;
+
+	// 			if (i == this.numberOfOctaves) {
+	// 				this.scale.push(frequencies[x]);
+	// 			}
+
+	// 		}
+	// 	}
+
+	// 	if (this.scaleName == 'chord_major') {
+	// 		// R, 4, 3
+
+
+	// 		this.numberOfOctaves = this.numberOfOctaves * 3;
+
+	// 		for (var i = 0; i < this.numberOfOctaves; i++) {
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + 4;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + 3;
+
+	// 			if (i == this.numberOfOctaves) {
+	// 				this.scale.push(frequencies[x]);
+	// 			}
+	// 		}
+	// 	}
+
+	// 	if (this.scaleName == 'chord_minor') {
+	// 		// R, 3, 4
+
+
+	// 		this.numberOfOctaves = this.numberOfOctaves * 3;
+
+	// 		for (var i = 0; i < this.numberOfOctaves; i++) {
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + 3;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + 4;
+
+	// 			if (i == this.numberOfOctaves) {
+	// 				this.scale.push(frequencies[x]);
+	// 			}
+
+	// 		}
+	// 	}
+
+	// 	if (this.scaleName == 'chord_sus') {
+	// 		// R, 5, 2
+
+	// 		this.numberOfOctaves = this.numberOfOctaves * 3;
+
+	// 		for (var i = 0; i < this.numberOfOctaves; i++) {
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + 5;
+
+	// 			this.scale.push(frequencies[x]);
+
+	// 			x = x + 2;
+
+	// 			if (i == this.numberOfOctaves) {
+	// 				this.scale.push(frequencies[x]);
+	// 			}
+
+	// 		}
+	// 	}
+
+	// 	return this.scale;
+	// }
 }
 
 class PlayerGrid {
@@ -472,6 +550,8 @@ class PlayerGrid {
 		this.numberOfBeats = params.numberOfBeats;
 		this.scale = params.scale;
 		this.notesArray = [];
+
+		console.log(params);
 	}
 
 	generatePlayerArray() {
@@ -517,6 +597,7 @@ class PlayerGrid {
 					noteButton.id = arrayObject.id;
 					// noteButton.innerHTML = arrayObject.frequency;
 					noteButton.classList.add('player__button');
+					noteButton.innerHTML = y;
 
 				arrayObject.noteButton = noteButton;
 
@@ -529,6 +610,7 @@ class PlayerGrid {
 		}
 		
 		return {notesArray: this.notesArray};
+
 	}
 
 	updateIndexArray(info) {
@@ -562,13 +644,22 @@ class PlayerGrid {
 class App {
 	constructor(params) {
 		this.defaultParams = {
-			rootNote: c2,
-			scaleName: 'pentatonic_minor',
-			numberOfOctaves: 2,
-			bpm: 100,
-			duration: 5,
-			signature: [4, 4],
-		};
+			'key': 'c',
+			'startingOctave': 3,
+			'scaleType': 'major',
+			'numberOfOctaves': 2,
+			'duration': 5, 
+			'signature': [4, 4],
+		}
+
+		// this.defaultParams = {
+		// 	rootNote: c2,
+		// 	scaleName: 'pentatonic_minor',
+		// 	numberOfOctaves: 2,
+		// 	bpm: 100,
+		// 	duration: 5,
+		// 	signature: [4, 4],
+		// };
 
 		if (!params) {
 			this.params = this.defaultParams;
@@ -667,6 +758,7 @@ class App {
 			mousedown = true;
 		});
 
+
 		window.addEventListener('mouseup', function() {
 			mousedown = false;
 			first = true;
@@ -686,10 +778,14 @@ class App {
 				var state;
 
 				button.noteButton.addEventListener('mousedown', function() {
-					if (!mousedown && first) {
+					if (first) {
 						button.toggle();
 						state = button.noteButton.classList.value;
 						first = false;	
+					} 
+
+					if (condition == 'multi') {
+						button.updateIndexArray(button.noteButton);
 					}
 				});
 
@@ -713,6 +809,7 @@ class App {
 					}
 				});
 
+				
 				this.playerColumn.appendChild(button.noteButton);
 			}	
 		}

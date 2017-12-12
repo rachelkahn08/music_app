@@ -1,24 +1,21 @@
 @import 'reset';
+@import 'Mixins';
 
 * {
 	box-sizing: border-box;
-	font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; 
-	font-weight: 300;
 }
 
 html, body {
 	width: 100%;
 	height: 100%;
-
 }
 
 body {
+	background-color: #111;
 	display: flex;
 	flex-direction: column;
-	flex-wrap: nowrap;
-	background-color: #111;
-	justify-content: center;
-	align-items: center;
+	flex-wrap: wrap;
+	justify-content: flex-start;
 }
 
 select, option, input, button {
@@ -34,6 +31,8 @@ select, option, input, button {
 }
 
 #playerOptions {
+	font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; 
+	font-weight: 200;
 	display: flex;
 	flex-wrap: nowrap;
 	height: 5vw;
@@ -52,40 +51,86 @@ select, option, input, button {
 
 #clearAll {
 	color: #fefefe;
+	position: absolute;
+	bottom: 2vw;
+	left: 50%;
+	transform: translateX(-50%);
+	background-color: #232323;
+	padding: 1vw;
+	border-radius: 1vw;
+	border: 1px solid white;
+	text-transform: uppercase;
+
 }
 
 #appPlayer {
-	max-height: 80vh;
-	height: 90vw;
-	width: 80vh;
-	max-width: 90vw;
 	display: flex;
-	justify-content: stretch;
-	align-items: stretch;
-	margin: 3vw;
+	// justify-content: center;
+	// align-items: center;
+	height: 100%;
+	width: 100%;
+	justify-content: center;
+	align-items: center;
+	padding: 6vh;
+
+	@include hidePortrait;
+
+	@include breakpoint(smallTablet) {
+		padding: 8vh;
+	}
+	
+	// width: 80vw;
+	// height: 50vh;
+	// width: 50vh;
+	// height: 50vh;
+	// justify-content: center;
+	// align-items: flex-end;
+	// margin: 0;
 	
 	.player__column {
 		height: 100%;
 		width: 100%;
 		display: flex;
 		flex-direction: column-reverse;
-		align-items: stretch;
-		justify-content: stretch;
-		flex-wrap: nowrap;
-		padding-left: 1px;
+		// margin-right: 4px;
+		justify-content: flex-end;
+		align-items: center;
+		margin-right: 1vw;
 
-		&:first-child {
-			padding-left: 0px;
+		@include breakpoint(smallTablet) {
+			// justify-content: center;	
 		}
 
+		&:last-child {
+			margin-right: 0;
+		}
+
+
+
 		.player__button {
-			border-radius: 3px;
-			height: 100%;
-			margin-bottom: 1px;
-			margin-top: 0;
+			min-height: 4vh;
+			min-width: 4vh;
+			margin-bottom: 1vw;
+			border-radius: 4px;
 			background-color: #555;
-			align-self: stretch;
 			transition: 0.001s;
+			// align-self: stretch;
+
+			@include breakpoint(smallTablet) {
+				max-height: 3.5vh;
+				max-width: 5vh;
+				border-radius: 2px;
+			}
+
+			@include breakpoint(smallDesktop) {
+				min-height: 2.5vh;
+				min-width: 2.5vh;
+			}
+
+			@include breakpoint(largeDesktop) {
+				min-height: 4vh;
+				min-width: 4vh;
+			}
 
 			&.active {
 				background-color: #9a9a9a;
