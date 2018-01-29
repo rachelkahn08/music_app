@@ -11,7 +11,7 @@ html, body {
 }
 
 body {
-	background-color: #111;
+	background-color: #e5ded7;
 	display: flex;
 	flex-direction: column;
 	flex-wrap: wrap;
@@ -55,11 +55,15 @@ select, option, input, button {
 	bottom: 2vw;
 	left: 50%;
 	transform: translateX(-50%);
-	background-color: #232323;
+	background-color: #826d66;
 	padding: 1vw;
 	border-radius: 1vw;
 	border: 1px solid white;
 	text-transform: uppercase;
+
+	@include breakpoint(smallTablet) {
+		bottom: 6vw;
+	}
 
 }
 
@@ -93,9 +97,9 @@ select, option, input, button {
 		display: flex;
 		flex-direction: column-reverse;
 		// margin-right: 4px;
-		justify-content: flex-end;
+		justify-content: center;
 		align-items: center;
-		margin-right: 1vw;
+		margin-right: 3px;
 
 		@include breakpoint(smallTablet) {
 			// justify-content: center;	
@@ -110,11 +114,13 @@ select, option, input, button {
 		.player__button {
 			min-height: 4vh;
 			min-width: 4vh;
-			margin-bottom: 1vw;
+			margin-bottom: 3px;
 			border-radius: 4px;
-			background-color: #555;
+			border-bottom: 1px solid  #cecdcc;
+			background-color: #fffcf9;
 			transition: 0.001s;
-			// align-self: stretch;
+			align-self: stretch;
+			box-shadow: 0 0 2px #cecdcc;
 
 			@include breakpoint(smallTablet) {
 				max-height: 3.5vh;
@@ -125,20 +131,21 @@ select, option, input, button {
 			@include breakpoint(smallDesktop) {
 				min-height: 2.5vh;
 				min-width: 2.5vh;
+				max-width: 100%;
 			}
 
 			@include breakpoint(largeDesktop) {
-				min-height: 4vh;
+				min-height: 6vh;
 				min-width: 4vh;
 			}
 
 			&.active {
-				background-color: #9a9a9a;
+				background-color: #ffe7e0;
 			}
 
 			&.playing {
-				background-color: #fefefe;
-				box-shadow: 0 0 5px white;
+				background-color: #ffcebf;
+				// box-shadow: 0 0 5px white;
 			}
 
 			&:first-child {
