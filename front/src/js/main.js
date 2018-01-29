@@ -1,3 +1,4 @@
+
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 reverbjs.extend(audioCtx);
 
@@ -61,19 +62,19 @@ class Note {
 	}
 }
 
-
-
 class Scale {
 	constructor(params) {
 		this.params = params;
+<<<<<<< HEAD
 		this.scaleType = this.params.scaleType;
+=======
+		this.rootNote = this.params.rootNote;
+		this.scaleName = this.params.scaleName;
+>>>>>>> origin/master
 		this.numberOfOctaves = this.params.numberOfOctaves;
-		
-
-		this.key = this.params.key;
-		this.startingOctave = this.params.startingOctave;
-
+		this.startingIndex = frequencies.indexOf(this.rootNote);
 		this.scale = [];
+<<<<<<< HEAD
 		this.allStepPatterns = {
 			'major': [2, 2, 1, 2, 2, 2, 1, ],
 			'minor': [2, 1, 2, 2, 1, 2, 2, 2],
@@ -121,10 +122,12 @@ class Scale {
 		let frequency = f * Math.pow(a, n);
 
 		return ( frequency );
+=======
+>>>>>>> origin/master
 	}
 
-	// generate scale by steps and root
 	generate() {
+<<<<<<< HEAD
 		this.scale.push(this.generateFreq(this.stepsToRoot));
 		let steps = this.stepsToRoot; // multiply root by number of octaves
 		let octaves = this.numberOfOctaves;
@@ -141,6 +144,274 @@ class Scale {
 				steps = steps +  this.stepArray[i];
 				let freq = this.generateFreq(steps);
 				this.scale.push(freq);
+=======
+		let x = this.startingIndex;
+
+		const w = 2;
+		const h = 1;
+		const o = 13;
+
+		// const stepArray = {
+		// 	'major': [2, 2, 1, 2, 2, 2, 1],
+		// 	'minor': []
+		// }
+
+		if (this.scaleName == 'major') {
+			// R, W, W, H, W, W, W, H
+
+			for (var i = 0; i < this.numberOfOctaves; i++) {
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + h;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + h;
+
+				if (i == this.numberOfOctaves - 1) {
+					this.scale.push(frequencies[x]);
+				}
+			}
+		}
+
+		if (this.scaleName == 'minor') { 
+			// R, W, H, W, W, H, W, W
+
+			for (var i = 0; i < this.numberOfOctaves; i++) {
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + h;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + h;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				if (i == this.numberOfOctaves - 1) {
+					this.scale.push(frequencies[x]);
+				}
+			}
+		}
+
+		if (this.scaleName == 'minor_harmonic') { 
+			// R, W, H, W, W, H, 1 1/2, H
+
+			for (var i = 0; i < this.numberOfOctaves; i++) {
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + h;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + h;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w + h;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + h;
+
+				if (i == this.numberOfOctaves - 1) {
+					this.scale.push(frequencies[x]);
+				}
+			}
+		}
+
+		if (this.scaleName == 'pentatonic_major') {
+			// W W 1-1/2 step W 1-1/2 step
+			this.numberOfOctaves = this.numberOfOctaves*1.5;
+
+			for (var i = 0; i < this.numberOfOctaves; i++) {
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w + h;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w + h;
+
+				if (i == this.numberOfOctaves - 1) {
+					this.scale.push(frequencies[x]);
+				}
+			}	
+		}
+
+		if (this.scaleName == 'pentatonic_minor') {
+			// R, 1 1/2, W, W, 1 1/2, W
+			this.numberOfOctaves = this.numberOfOctaves*1.5;
+
+			for (var i = 0; i < this.numberOfOctaves; i++) {
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w + h;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w + h;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + w;
+
+				if (i == this.numberOfOctaves - 1) {
+					this.scale.push(frequencies[x]);
+				}
+			}	
+		}
+
+		if (this.scaleName == 'fifths') {
+			// R, 7
+			this.numberOfOctaves = this.numberOfOctaves * 4.5;
+
+			for (var i = 0; i < this.numberOfOctaves; i++) {
+				this.scale.push(frequencies[x]);
+
+				x = x + 4;
+
+				if (i == this.numberOfOctaves) {
+					this.scale.push(frequencies[x]);
+				}
+
+			}
+		}
+
+		if (this.scaleName == 'chord_major') {
+			// R, 4, 3
+
+			this.numberOfOctaves = this.numberOfOctaves * 3;
+
+			for (var i = 0; i < this.numberOfOctaves; i++) {
+
+				this.scale.push(frequencies[x]);
+
+				x = x + 4;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + 3;
+
+				if (i == this.numberOfOctaves) {
+					this.scale.push(frequencies[x]);
+				}
+			}
+		}
+
+		if (this.scaleName == 'chord_minor') {
+			// R, 3, 4
+
+			this.numberOfOctaves = this.numberOfOctaves * 3;
+
+			for (var i = 0; i < this.numberOfOctaves; i++) {
+				this.scale.push(frequencies[x]);
+
+				x = x + 3;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + 4;
+
+				if (i == this.numberOfOctaves) {
+					this.scale.push(frequencies[x]);
+				}
+
+			}
+		}
+
+		if (this.scaleName == 'chord_sus') {
+			// R, 5, 2
+
+			this.numberOfOctaves = this.numberOfOctaves * 3;
+
+			for (var i = 0; i < this.numberOfOctaves; i++) {
+				this.scale.push(frequencies[x]);
+
+				x = x + 5;
+
+				this.scale.push(frequencies[x]);
+
+				x = x + 2;
+
+				if (i == this.numberOfOctaves) {
+					this.scale.push(frequencies[x]);
+				}
+
+>>>>>>> origin/master
 			}
 		}
 
@@ -197,7 +468,10 @@ class PlayerGrid {
 				let noteButton = document.createElement('button');
 					noteButton.id = arrayObject.id;
 					noteButton.classList.add('player__button');
+<<<<<<< HEAD
 					
+=======
+>>>>>>> origin/master
 
 				arrayObject.noteButton = noteButton;
 
@@ -210,10 +484,10 @@ class PlayerGrid {
 		}
 		
 		return {notesArray: this.notesArray};
-
 	}
 
 	updateIndexArray(info) {
+		console.log(info);
 
 		let obj = {};
 			obj.call = 'update_toggle_array';
@@ -245,6 +519,7 @@ class App {
 	constructor(params) {
 		// default settings for the first init & for multiplayer mode
 		this.defaultParams = {
+<<<<<<< HEAD
 			'key': 'c',
 			'startingOctave': 4,
 			'scaleType': 'pentatonic_minor',
@@ -255,6 +530,17 @@ class App {
 		}
 
 		// check for parameter arguments 
+=======
+			rootNote: c2,
+			scaleName: 'pentatonic_minor',
+			numberOfOctaves: 2,
+			bpm: 100,
+			duration: 4,
+			signature: [4, 4],
+			numberOfOctaves: 2,
+		};
+
+>>>>>>> origin/master
 		if (!params) {
 			// use default params if no arguments
 			this.params = this.defaultParams;
@@ -284,8 +570,18 @@ class App {
 
 		this.setPlayerInterval = this.setPlayerInterval.bind(this);
 		this.playColumn = this.playColumn.bind(this);
+<<<<<<< HEAD
 		this.allOff = this.allOff.bind(this);
 		this.init = this.init.bind(this);
+=======
+		this.refreshApp = this.refreshApp;
+
+		this.appContainer = document.getElementById('appPlayer');
+	}
+
+	refreshApp() {
+		this.appContainer.innerHTML = '';
+>>>>>>> origin/master
 
 		this.testPlayCount = 0;
 	}
@@ -337,22 +633,6 @@ class App {
 		}
 	}
 
-	allOff(e) {
-		e.preventDefault();
-
-		let columns = this.noteArray;
-
-		for (var x = 0; x < columns.length; x++) {
-			let buttons = columns[x];
-			for (var y = 0; y < buttons.length; y++) {
-				if (buttons[y].noteButton.classList.contains('active')) {
-					buttons[y].toggle();
-					buttons[y].updateIndexArray(buttons[y].noteButton);
-				}
-			}
-		}
-	}
-
 	init(condition) {
 		var mousedown = false;
 		var first = true;
@@ -360,7 +640,6 @@ class App {
 		window.addEventListener('mousedown', function(e) {
 			mousedown = true;
 		});
-
 
 		window.addEventListener('mouseup', function() {
 			mousedown = false;
@@ -381,14 +660,10 @@ class App {
 				var state;
 
 				button.noteButton.addEventListener('mousedown', function() {
-					if (first) {
+					if (!mousedown && first) {
 						button.toggle();
 						state = button.noteButton.classList.value;
 						first = false;	
-					} 
-
-					if (condition == 'multi') {
-						button.updateIndexArray(button.noteButton);
 					}
 				});
 
@@ -405,6 +680,7 @@ class App {
 								button.toggle();	
 
 								if (condition == 'multi') {
+									console.log('multi');
 									button.updateIndexArray(button.noteButton);
 								}
 							}	
@@ -412,7 +688,6 @@ class App {
 					}
 				});
 
-				
 				this.playerColumn.appendChild(button.noteButton);
 			}	
 		}
@@ -422,13 +697,16 @@ class App {
 }
 
 const multiPlayer = (function() {
+<<<<<<< HEAD
 	var app;
 	let shared = {};
+=======
+>>>>>>> origin/master
 
 	function init() {
+
 		// open server
 		connectToServer().then(function(server) {
-			document.getElementById('clearAll').addEventListener('click', app.allOff);
 
 			// what to do when the server sends updates
 			server.onmessage = function(message) {
@@ -439,7 +717,7 @@ const multiPlayer = (function() {
 				if (update.call == 'update_toggle_array') {
 					updatePlayer(update);	
 				} if (update.call == 'new_partner_set') {
-					app.allOff();
+					console.log(update);
 				}	
 			}
 		}).catch(function(err) {
@@ -455,7 +733,7 @@ const multiPlayer = (function() {
 	function connectToServer() {
 
 		// generate a new app instance with multiplayer settings, but don't mount it until server can respond
-    	app = new App;
+    	var app = new App;
 
 		// promise allows server to send info on other player's board before the user 
 	    return new Promise(function(resolve, reject) {
@@ -516,5 +794,3 @@ const multiPlayer = (function() {
 	// shared.refresh = refresh;
 	return shared;
 }());
-
-multiPlayer.init();
