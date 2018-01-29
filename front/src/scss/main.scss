@@ -79,23 +79,23 @@ select, option, input, button {
 		padding: 8vh;
 	}
 	
-	// width: 80vw;
-	// height: 50vh;
-	// width: 50vh;
-	// height: 50vh;
-	// justify-content: center;
-	// align-items: flex-end;
-	// margin: 0;
+	width: 80vw;
+	height: 50vh;
+	width: 50vh;
+	height: 50vh;
+	justify-content: center;
+	align-items: flex-end;
+	margin: 0;
 	
 	.player__column {
 		height: 100%;
 		width: 100%;
 		display: flex;
 		flex-direction: column-reverse;
-		// margin-right: 4px;
+		margin-right: 4px;
 		justify-content: flex-end;
 		align-items: center;
-		margin-right: 1vw;
+		// margin-right: 1vw;
 
 		@include breakpoint(smallTablet) {
 			// justify-content: center;	
