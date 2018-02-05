@@ -8,7 +8,6 @@ var reverbNode = audioCtx.createReverbFromUrl(reverbUrl, function() {
 
 var server;
 var user = {};
-var playerInterval;
 
 class Note {
 	constructor(frequency) {
@@ -60,8 +59,6 @@ class Note {
 		setTimeout(this.play, this.delay);
 	}
 }
-
-
 
 class Scale {
 	constructor(params) {
@@ -246,12 +243,13 @@ class App {
 		// default settings for the first init & for multiplayer mode
 		this.defaultParams = {
 			'key': 'c',
-			'startingOctave': 4,
+			'startingOctave': 3,
 			'scaleType': 'pentatonic_minor',
-			'numberOfOctaves': 2,
-			'bpm': 180,
+			'numberOfOctaves': 3,
+			'bpm': 150,
 			'signature': [4, 4],
-			'duration': 5,
+			'duration': 8,
+			'activeNotes': [],
 		}
 
 		// check for parameter arguments 
@@ -263,6 +261,15 @@ class App {
 			this.params = params;
 		}
 
+		// // grab all controls to use throughout app
+		// this.controls = {
+		// 	'scaleSelector': scaleSelector,
+		// 	'rootSelector': rootSelector,
+		// 	'octavesSelector': octavesNumSelector,
+		// 	'upOctave': upOctave,
+		// 	'downOctave': downOctave
+		// }
+
 		this.appContainer = document.getElementById('appPlayer');
 
 		// calculate the total number of beats to get the number of columns
@@ -271,6 +278,21 @@ class App {
 		// calculate & define the interval rate for the player interval	
 		this.params.intervalRate = 60000 / this.params.bpm;
 
+		
+		this.generateGrid = this.generateGrid.bind(this);
+		this.setPlayerInterval = this.setPlayerInterval.bind(this);
+		this.clearPlayerInterval = this.clearPlayerInterval.bind(this);
+		this.playColumn = this.playColumn.bind(this);
+		this.init = this.init.bind(this);
+		this.refreshApp = this.refreshApp.bind(this);
+		this.recordState = this.recordState.bind(this);
+		this.restoreState = this.restoreState.bind(this);
+
+
+		this.testPlayCount = 0;
+	}
+
+	generateGrid() {
 		// generate the frequency values of the player buttons
 		this.scale = new Scale(this.params);
 		this.params.scale = this.scale.generate();
@@ -281,49 +303,96 @@ class App {
 
 		// PlayerGrid returns the array of objects for each note button
 		this.noteArray = this.playerArrays.notesArray;
-
-		this.setPlayerInterval = this.setPlayerInterval.bind(this);
-		this.playColumn = this.playColumn.bind(this);
-		this.allOff = this.allOff.bind(this);
-		this.init = this.init.bind(this);
-
-		this.testPlayCount = 0;
 	}
 
 	setPlayerInterval() {
 		this.xCount = 0;
-		playerInterval = window.setInterval(this.playColumn, this.params.intervalRate);
+		this.playerInterval = window.setInterval(this.playColumn, this.params.intervalRate);
 	}
 
-	// clearPlayerInterval() {
-	// 	window.clearInterval(playerInterval);
-	// }
+	clearPlayerInterval() {
+		return new Promise((resolve, reject) => {
+			clearInterval(this.playerInterval);
+			console.log('clear');
+			resolve();
+		});
+	}
 
-	// testInterval() {
-	// 	console.log(this.clearPlayerInterval);
-	// }
+	refreshApp(e) {
+		e.preventDefault();
+		let trigger = e.srcElement;
 
-	// refreshApp() {
-	// 	this.clearPlayerInterval();
-	// 	this.setPlayerInterval();
-	// }
+
+		this.recordState()
+		.then( this.clearPlayerInterval )
+		.then(() => {
+			document.getElementById('appPlayer').innerHTML = '';
+		})
+		.then(() => {
+			if (trigger.id == 'upOctave') {
+				if (this.params.startingOctave == 0) {
+					return;
+				} else {
+					this.params.startingOctave++;	
+				}
+			} else if (trigger.id == 'downOctave'){
+				if (this.params.startingOctave == 10) {
+					return;
+				} else {
+					this.params.startingOctave--;
+				}
+			} else {
+				this.params[trigger.id] = trigger.value;
+			}
+		}).then( this.generateGrid )
+		.then( this.restoreState );
+
+		
+
+		// setTimeout(this.restoreState, 1000);
+
+		// get record of all the on/off buttons
+		// hold it
+		// recreate grid as needed
+		// change bpm if needed
+		// will need a pause function perhaps
+		// after recreating everything reset the buttons on or off
+		// unpause
+		// this.clearPlayerInterval();
+		// this.setPlayerInterval();
+	}
+
+	recordState() {
+		let activeNotes = document.querySelectorAll('.active'); 
+		let savedNotes = this.params.activeNotes;
+		return new Promise(function(resolve, reject) {
+			savedNotes = [];
+			for (var i = 0; i < activeNotes.length; i++) {
+				savedNotes.push(activeNotes[i].id);
+			}
+			console.log('resolving');
+			resolve(savedNotes);
+		});
+	}
+
+	restoreState() {
+		for (var i = 0; i < this.params.activeNotes.length; i++) {
+			document.getElementById(this.params.activeNotes[i]).classList.add('active');
+		}
+	}
 
 	playColumn() {
-		this.testPlayCount++;
-		this.columns = this.noteArray[this.xCount];
+		let columns = this.noteArray[this.xCount];
 	
-		for (this.yCount = 0; this.yCount < this.columns.length; this.yCount++) {
-			this.noteButton = this.columns[this.yCount].noteButton;
-			this.frequency = this.columns[this.yCount].frequency;
+		for (this.yCount = 0; this.yCount < columns.length; this.yCount++) {
+			let noteButton = columns[this.yCount].noteButton;
+			let frequency = columns[this.yCount].frequency;
 
-			if (this.noteButton.classList.contains('active')) {
+			if (noteButton.classList.contains('active')) {
 				// it has to be a new note every time because of how the gain functions work
-				this.note = new Note(this.frequency);
-				this.noteButton.classList.add('playing');
-				this.note.tweakStartTime();
-
-				let noteButton = this.noteButton;
-
+				let note = new Note(frequency);
+					noteButton.classList.add('playing');
+					note.tweakStartTime();
 				setTimeout(() => {
 					noteButton.classList.remove('playing');
 				}, this.params.intervalRate);
@@ -337,25 +406,31 @@ class App {
 		}
 	}
 
-	allOff(e) {
-		e.preventDefault();
+	allOff() {
 
 		let columns = this.noteArray;
 
 		for (var x = 0; x < columns.length; x++) {
+
 			let buttons = columns[x];
 			for (var y = 0; y < buttons.length; y++) {
 				if (buttons[y].noteButton.classList.contains('active')) {
 					buttons[y].toggle();
-					buttons[y].updateIndexArray(buttons[y].noteButton);
+
+					if (this.condition == 'multi' ) {
+						buttons[y].updateIndexArray(buttons[y].noteButton);
+					}
 				}
 			}
 		}
 	}
 
 	init(condition) {
+		this.generateGrid();
+
 		var mousedown = false;
 		var first = true;
+		this.condition = condition;
 
 		window.addEventListener('mousedown', function(e) {
 			mousedown = true;
@@ -368,24 +443,22 @@ class App {
 		});
 
 		for (this.x = 0; this.x < this.noteArray.length; this.x++) {
-			this.column = this.noteArray[this.x];
+			let column = this.noteArray[this.x];
 			
-			this.playerColumn = document.createElement('div');
-				this.playerColumn.classList.add('player__column');
+			let playerColumn = document.createElement('div');
+				playerColumn.classList.add('player__column');
 
-			this.appContainer.appendChild(this.playerColumn);
+			this.appContainer.appendChild(playerColumn);
 
-			for (this.y = 0; this.y < this.column.length; this.y++) {
+			for (this.y = 0; this.y < column.length; this.y++) {
 				
-				let button = this.column[this.y];
+				let button = column[this.y];
 				var state;
 
 				button.noteButton.addEventListener('mousedown', function() {
-					if (first) {
-						button.toggle();
-						state = button.noteButton.classList.value;
-						first = false;	
-					} 
+					button.toggle();
+					state = button.noteButton.classList.value;
+					first = false;	
 
 					if (condition == 'multi') {
 						button.updateIndexArray(button.noteButton);
@@ -413,22 +486,34 @@ class App {
 				});
 
 				
-				this.playerColumn.appendChild(button.noteButton);
+				playerColumn.appendChild(button.noteButton);
 			}	
+		}
+
+		if (condition == '1p') {
+			let controls = document.querySelectorAll('select');
+			for (var i = 0; i < controls.length; i++) {
+				controls[i].onchange = this.refreshApp;
+			}
+			document.getElementById('upOctave').onclick = this.refreshApp;
+			document.getElementById('downOctave').onclick = this.refreshApp;
 		}
 
 		this.setPlayerInterval();
 	}
 }
 
-const multiPlayer = (function() {
+const MultiPlayer = (function() {
 	var app;
 	let shared = {};
 
 	function init() {
 		// open server
 		connectToServer().then(function(server) {
-			document.getElementById('clearAll').addEventListener('click', app.allOff);
+			document.getElementById('clearAll').addEventListener('click', function(e) {
+				e.preventDefault();
+				app.allOff();
+			});
 
 			// what to do when the server sends updates
 			server.onmessage = function(message) {
@@ -447,9 +532,9 @@ const multiPlayer = (function() {
 		});
 	}
 
-	// function refresh() {
-	// 	app.refreshApp();
-	// }
+	function refresh() {
+		app.refreshApp();
+	}
 
 
 	function connectToServer() {
@@ -513,8 +598,24 @@ const multiPlayer = (function() {
 
 
 	shared.init = init;
-	// shared.refresh = refresh;
+	shared.refresh = refresh;
 	return shared;
 }());
 
-multiPlayer.init();
+const SinglePlayer = (function() {
+	let app = new App;
+
+	function init() {
+		app.init('1p');
+		document.getElementById('clearAll').addEventListener('click', function(e) {
+			e.preventDefault();
+			app.allOff();
+		});
+	}
+	
+	return { init: init };	
+}());
+
+SinglePlayer.init();
+
+// MultiPlayer.init();

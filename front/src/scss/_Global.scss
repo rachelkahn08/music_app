@@ -1,0 +1,14 @@
+select, option, input, button {
+	border: 1px solid black;
+	color: #fefefe;
+	background-color: grey;
+	border-radius: 3px;
+	box-shadow: 0 0 2px black;
+	padding: 0.5vw;
+}
+
+input, option, select {
+	background-color: white;
+	color: black;
+}
+
