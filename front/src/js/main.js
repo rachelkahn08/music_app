@@ -28,7 +28,7 @@ class Note {
 	}
 
 	randomInRange(from, to) {
-		var r = Math.floor(Math.random() * ( to - from ) + from);
+		let r = Math.floor(Math.random() * ( to - from ) + from);
 			r = r/1000;
 		return r;
 	}
@@ -287,6 +287,7 @@ class App {
 		this.refreshApp = this.refreshApp.bind(this);
 		this.recordState = this.recordState.bind(this);
 		this.restoreState = this.restoreState.bind(this);
+		this.updateParams = this.updateParams.bind(this);
 
 
 		this.testPlayCount = 0;
@@ -319,7 +320,6 @@ class App {
 	}
 
 	refreshApp(e) {
-		e.preventDefault();
 		let trigger = e.srcElement;
 
 
@@ -329,23 +329,17 @@ class App {
 			document.getElementById('appPlayer').innerHTML = '';
 		})
 		.then(() => {
-			if (trigger.id == 'upOctave') {
-				if (this.params.startingOctave == 0) {
-					return;
-				} else {
-					this.params.startingOctave++;	
-				}
-			} else if (trigger.id == 'downOctave'){
-				if (this.params.startingOctave == 10) {
-					return;
-				} else {
-					this.params.startingOctave--;
-				}
-			} else {
-				this.params[trigger.id] = trigger.value;
-			}
-		}).then( this.generateGrid )
-		.then( this.restoreState );
+			return trigger.id = 'upOctave'
+					? this.params.startingOctave++
+					: trigger.id = 'downOctave'
+					? this.params.startingOctave--
+					: trigger.id = refreshButton
+					? this.updateParams()
+					: null;
+		}).then(() => {
+			console.log('update done');
+			this.init();
+		}).then( this.restoreState );
 
 		
 
@@ -360,6 +354,17 @@ class App {
 		// unpause
 		// this.clearPlayerInterval();
 		// this.setPlayerInterval();
+	}
+
+	updateParams() {
+		let key = document.getElementById('key').value;
+			this.params.key = key;
+		let scaleType = document.getElementById('scaleType').value;
+			this.params.scaleType = scaleType;
+		let numberOfOctaves = document.getElementById('numberOfOctaves').value;
+			this.params.numberOfOctaves = numberOfOctaves;
+
+		return this.params;
 	}
 
 	recordState() {
@@ -428,8 +433,8 @@ class App {
 	init(condition) {
 		this.generateGrid();
 
-		var mousedown = false;
-		var first = true;
+		let mousedown = false;
+		let first = true;
 		this.condition = condition;
 
 		window.addEventListener('mousedown', function(e) {
@@ -532,11 +537,6 @@ const MultiPlayer = (function() {
 		});
 	}
 
-	function refresh() {
-		app.refreshApp();
-	}
-
-
 	function connectToServer() {
 
 		// generate a new app instance with multiplayer settings, but don't mount it until server can respond
@@ -584,7 +584,7 @@ const MultiPlayer = (function() {
 	function updatePlayer(message) {
 
 		// target specifically the button that is changing
-		var button = document.getElementById(message.id);
+		let button = document.getElementById(message.id);
 
 		// compare classList vals to the new vals 
 		if 	(button.classList.contains('active') && message.val == 0) {
@@ -598,7 +598,6 @@ const MultiPlayer = (function() {
 
 
 	shared.init = init;
-	shared.refresh = refresh;
 	return shared;
 }());
 
@@ -611,11 +610,16 @@ const SinglePlayer = (function() {
 			e.preventDefault();
 			app.allOff();
 		});
+		document.getElementById('refreshButton').addEventListener('click', function(e) {
+			e.preventDefault();
+			console.log(e);
+			app.refreshApp(e);
+		})
 	}
 	
 	return { init: init };	
 }());
 
-SinglePlayer.init();
+MultiPlayer.init();
 
 // MultiPlayer.init();
